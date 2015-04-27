@@ -148,28 +148,6 @@ class WP_Location_Search {
 		wp_enqueue_script( 'wp-location-search', self::$url . 'location-search.js', array( 'jquery' ) );
 		wp_localize_script( 'wp-location-search', 'wpls_config', $data );
 	}
-	
-	public function add_shortcode( $params, $content = null ) {
-		if(
-			( isset( $params['video_id'] ) || isset( $params['playlist_id'] ) ) 
-			&& isset( $params['type'] )
-		) {
-			$html = '<div class="article-media"><div class="video-container">';
-			
-			switch ( $params['type'] ) {
-				case 'youtube':
-					$id = isset ( $params['video_id'] ) ? $params['video_id'] : $params['playlist_id'];
-					$html .= '<div id="yt-frame-'.$id.'" data-key="'.$params['video_id'].'" data-playlist-key="'.$params['playlist_id'].'"></div>';
-					break;
-
-				case 'vimeo':
-					$html .= '<iframe id='.$params['video_id'].'src="//player.vimeo.com/video/'.$params['video_id'].'?portrait=0&color=333" api="1" class="vimeo-video" frameborder="0" webkitallowfullscreen mozallowfullscreen allowfullscreen></iframe>';
-					break;
-			}
-		}
-		
-		return $html . '</div></div>';
-	}
 
 	public function fetch_coordinates( $address ) {
 		$address = str_replace( " ", "+", $address );
