@@ -17,8 +17,6 @@ class WP_Location_Search {
 	protected $location_search_page_name = 'search-locations';
 	protected $location_search_page_title = 'Search Locations';
 
-	public static $text_domain = 'wp_location_search';
-
 	/**
 	 * Instance of this class.
 	 *
@@ -70,6 +68,9 @@ class WP_Location_Search {
 
 		// add content filter for location search page
 		add_filter( 'the_content', array( $this, 'location_search_content_filter' ) );
+
+		add_action( 'wp_ajax_wpls_fetch_locations', array( $this, 'fetch_locations' ) );
+		add_action( 'wp_ajax_nopriv_wpls_fetch_locations', array( $this, 'fetch_locations' ) );
 	}
 
 	public function meta_box() {
@@ -112,6 +113,16 @@ class WP_Location_Search {
 
 	public function get_location_search_page_content() {
 		if ( file_exists( self::$path . 'page-content.php' ) ) {
+			$data = array(
+				'cancel_message' => __( 'Unless you save your post you will lose any changes you have made.  Are you sure you want to leave this page?'),
+				'redirect_url'   => site_url(),
+				'nonce'			 => wp_create_nonce( 'wp-location-search' ),
+				'ajaxurl'		 => admin_url('admin-ajax.php'),
+			);
+
+			// enqueue necessary scripts
+			self::enqueue_scripts( $data );
+
 			ob_start();
 			include( self::$path . 'page-content.php' );
 			$content = ob_get_contents();
@@ -144,8 +155,13 @@ class WP_Location_Search {
 		) );
 	}
 	
-	public function enqueue_scripts( $data ) {
-		wp_enqueue_script( 'wp-location-search', self::$url . 'location-search.js', array( 'jquery' ) );
+	public static function enqueue_scripts( $data = array() ) {
+		// CSS
+		wp_enqueue_style( 'wpls-styles', self::$url . 'location-search.css', array(), WP_LOCATION_SEARCH_VERSION, true );
+
+		// JS
+		wp_enqueue_script( 'google-maps', 'https://maps.googleapis.com/maps/api/js?v=3.exp', array( 'jquery' ), WP_LOCATION_SEARCH_VERSION );
+		wp_enqueue_script( 'wp-location-search', self::$url . 'location-search.js', array( 'jquery', 'google-maps' ), WP_LOCATION_SEARCH_VERSION );
 		wp_localize_script( 'wp-location-search', 'wpls_config', $data );
 	}
 
@@ -170,5 +186,57 @@ class WP_Location_Search {
 	
 		// if we couldn't find the coordinates, return false
 		return false;
+	}
+
+	/**
+	 * Search for locations
+	 *
+	 * @since     1.0.0
+	 *
+	 * @return    null    outputs a JSON string to be consumed by an AJAX call
+	 */
+	public function fetch_locations() {
+		$security_check_passes = (
+			! empty( $_SERVER['HTTP_X_REQUESTED_WITH'] )
+			&& 'xmlhttprequest' === strtolower( $_SERVER['HTTP_X_REQUESTED_WITH'] )
+			&& isset( $_GET['nonce'] )
+			&& wp_verify_nonce( $_GET['nonce'],  'wp-location-search' )
+		);
+
+		if ( ! $security_check_passes ) {
+			wp_send_json_error( $_GET );
+			wp_die();
+		}
+		
+		$search = $_GET['q'];
+
+		$locations = get_posts( array( 'post_type' => 'location' ) );
+
+		$results  = array();
+		foreach ( $locations as $location ) {
+			$lat = get_post_meta( $location->ID, '_wpls_lat', true );
+			$lng = get_post_meta( $location->ID, '_wpls_lng', true );
+
+			$address = get_post_meta( $location->ID, '_wpls_address', true );
+			$city = get_post_meta( $location->ID, '_wpls_city', true );
+			$state = get_post_meta( $location->ID, '_wpls_state', true );
+			$zip = get_post_meta( $location->ID, '_wpls_zip', true );
+
+			$permalink = get_permalink( $location->ID );
+
+			$results[] = array( 
+				'id' => $location->ID, 
+				'title' => $location->post_title,
+				'lat' => $lat,
+				'lng' => $lng,
+				'address' => $address,
+				'city' => $city,
+				'state' => $state,
+				'zip' => $zip,
+				'permalink' => $permalink,
+			);
+		}
+		
+		wp_send_json_success( $results );
 	}
 }

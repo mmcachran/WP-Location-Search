@@ -1,0 +1,31 @@
+html, body, #map-canvas {
+	height: 100%;
+	margin: 0px;
+	padding: 0px
+}
+
+#controls {
+	padding: 5px 5px 0;
+	height: 27px;
+}	
+
+#personSelect {
+	margin-right: 10px;
+	float: left;
+}
+
+#radiusSelect {
+	margin-right: 35px;
+	float: left;
+}
+
+#locationSelect {
+	float: left;
+	max-width: 230px;
+	visibility: hidden;
+}
+
+#wpls-map {
+	width: 100%;
+	height: 91%;
+}
