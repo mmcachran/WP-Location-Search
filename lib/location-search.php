@@ -7,7 +7,7 @@ if ( ! defined( 'WPINC' ) ) {
 class WP_Location_Search {
 	const VERSION = '1.0.0';
 
-	const GMAPS_API_KEY = 'AIzaSyANwMWdchK3Hdls935DT_QG8FHO6uNFRg8';
+	const GMAPS_API_KEY = '';
 
 	public static 
 		$url,
